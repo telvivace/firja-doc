@@ -1,0 +1,34 @@
+\makeatletter
+\addto\captionsslovene{
+  % handle hyperref's autoref 
+  \renewcommand\equationautorefname{enačba}%
+  \renewcommand\footnoteautorefname{opomba}%
+  \renewcommand\itemautorefname{alineja}%
+  \renewcommand\figureautorefname{slika}%
+  \renewcommand\tableautorefname{tabela}%
+  \renewcommand\partautorefname{del}%
+  \renewcommand\appendixautorefname{priloga}%
+  \renewcommand\chapterautorefname{poglavje}%
+  \renewcommand\sectionautorefname{razdelek}%
+  \renewcommand\subsectionautorefname{podrazdelek}%
+  \renewcommand\subsubsectionautorefname{podpodrazdelek-section}%
+  \renewcommand\paragraphautorefname{odstavek}%
+  \renewcommand\subparagraphautorefname{del odstavka}%
+  \renewcommand\FancyVerbLineautorefname{vrstica}%
+  \renewcommand\theoremautorefname{teorem}%
+  \renewcommand\pageautorefname{stran}%
+  % handle algorithm2e
+  % \renewcommand{\listalgorithmcfname}{Seznam algoritmov}%
+  % \renewcommand{\algorithmcfname}{Algoritem}%
+  % \renewcommand{\algorithmautorefname}{\algorithmcfname}%
+  % \renewcommand{\algorithmcflinename}{Vrstica}%
+  % \renewcommand{\algocf@typo}{}%
+  % \renewcommand{\@algocf@procname}{Procedura}%
+  % \renewcommand{\@algocf@funcname}{Funkcija}%
+  % \renewcommand{\procedureautorefname}{\@algocf@procname}%
+  % \renewcommand{\functionautorefname}{\@algocf@funcname}%
+  % \renewcommand{\algocf@languagechoosen}{slovene}%
+  % handle lstlistings
+  \renewcommand{\lstlistingname}{Izpis}%
+}
+\makeatother

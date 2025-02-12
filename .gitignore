@@ -1,0 +1,14 @@
+changes.tex
+*.dep
+*.dpth
+*.md5
+*.aux
+*.auxlock
+*.log
+*.pdf
+*.bbl
+*.blg
+*.lol
+*.out
+*.toc
+*.csv

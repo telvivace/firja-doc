@@ -1,0 +1,21 @@
+\documentclass[tikz]{standalone}
+\usetikzlibrary{graphs, graphdrawing}
+\usegdlibrary{trees} % Required for graph drawing
+
+\begin{document}
+
+\tikz[tree layout, grow'=down, level distance=5mm, sibling distance=3mm, 
+       nodes={draw, fill=cyan!40, circle, inner sep=4pt, scale=0.6}]
+\node{0}
+  child {node {0}
+    child {node {0}
+      child {node {0}
+        child {node {0}
+          child {node [fill=red!50]{4}}
+          child {node [fill=red!50]{11}}}
+        child {node [fill=red!50]{7}}}
+      child {node [fill=red!50]{6}}}
+    child {node [fill=red!50]{7}}}
+  child {node [fill=red!50]{15}};
+
+\end{document}

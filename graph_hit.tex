@@ -1,0 +1,44 @@
+\documentclass[a4paper]{article}
+\usepackage{pgfplots}
+\usepackage{siunitx}
+\usepgfplotslibrary{units} % Allows to enter the units nicely
+%\usepgfplotslibrary{external}
+%\tikzexternalize % Enable externalization
+\setlength{\textwidth}{18.5cm}
+\setlength{\oddsidemargin}{-2cm}
+
+% Define keys for ymin and ymax
+\pgfkeys{/myplot/.is family, /myplot,
+    ymin/.initial=0,
+    ymax/.initial=2000
+}
+
+% Command to set limits from command line
+\newcommand{\SetYLimits}[2]{%
+    \pgfkeys{/myplot/ymin=#1}%
+    \pgfkeys{/myplot/ymax=#2}%
+}
+\begin{document}
+
+\begin{tikzpicture}
+    \begin{axis}[
+        width=\textwidth, % Scale the plot to \linewidth
+        grid=major, 
+        grid style={dashed,gray!30},
+        xlabel=Korak, % Set the labels
+        ylabel=Čas ,
+        y unit=\si{\SIUnitSymbolMicro s},
+        legend style={at={(0.5,-0.2)},anchor=north},
+        x tick label style={rotate=90,anchor=east},
+        mark size=0.1em,
+        only marks,
+      ]
+      \addplot
+      % add a plot from table; you select the columns by using the actual name in
+      % the .csv file (on top)
+      table[x=col1,y=col2, col sep=comma] {data/timing_frames.csv}; 
+      \legend{Plot}
+    \end{axis}
+  \end{tikzpicture}
+
+\end{document}
