@@ -1,4 +1,4 @@
-\documentclass{article}
+\documentclass[tikz]{standalone}
 \usepackage{pgfplots}
 \usepackage{siunitx}
 \usepgfplotslibrary{units} % Allows to enter the units nicely
@@ -13,8 +13,9 @@
     \begin{axis}[
         width=\textwidth, % Scale the plot to \linewidth
         grid=major,
-        ymin=\customymin,
-        ymax=\customymax,
+        ymin=0,
+        ymax=8000,
+        restrict y to domain=0:8000,
         grid style={dashed,gray!30},
         xlabel=Korak, % Set the labels
         ylabel=Čas ,
@@ -27,7 +28,7 @@
       \addplot
       % add a plot from table; you select the columns by using the actual name in
       % the .csv file (on top)
-      table[x=col1,y=col2, col sep=comma]{dataln/timing_hit.csv}; 
+      table[x=col1,y=col2, col sep=comma]{dataln/timing_frames.csv}; 
       \legend{Plot}
     \end{axis}
   \end{tikzpicture}

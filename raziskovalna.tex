@@ -7,6 +7,8 @@
 \usepackage[luatex]{hyperref}       % For clickable URLs, citations etc
 \usepackage[usenames,dvipsnames]{color}%has to be called before tikz
 \usepackage{tikz}
+%\usepackage{setspace}
+%\setstretch{1.25}
 \usetikzlibrary{graphs,graphdrawing}
 \usegdlibrary{trees}
 \usepackage{color}
@@ -17,19 +19,38 @@
 \pagestyle{fancy}
 \fancyhf{} % Clear all header and footer fields
 %\fancyhead[R]{Your Header on the Left} 
+%lstlistings popravek levega roba
+%v glavi izmerim širino dveh majhnih številk in izračunam rob
+\newlength{\MaxSizeOfLineNumbers}%
+\settowidth{\MaxSizeOfLineNumbers}{\tiny 99}% Adjust to maximum number of lines
+\addtolength{\MaxSizeOfLineNumbers}{2.5ex}%
+
+
 
 \fancyhead[C]{Optimizacija zaznave trkov v 2D}
 \fancyfoot[C]{\thepage}
 \setlength{\textwidth}{16cm}
 \setlength{\oddsidemargin}{0cm}
 \setlength{\headwidth}{\textwidth}
-\linespread{0.5}
 
+\lstset{
+    numbers=left,
+    numberstyle=\tiny,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{violet},
+    identifierstyle=\color{teal},
+    extendedchars=true,
+    xleftmargin=\MaxSizeOfLineNumbers,
+    texcl=true,
+    captionpos=b,
+}
+
+% \linespread{0.5}
 % Begin Document
 \begin{document}
 \include{slovene-localization.tex} %slovene captions for hyperref and algorithm2e
 % Title Page
-\begin{titlepage}    
+\begin{titlepage}
     \title{\Huge Optimizacija zaznave trkov v 2D}
     \author{Klemen Javoršek}
     \date{Ljubljana, 2024/2025}
@@ -39,14 +60,60 @@
     \fancyfoot[L]{Mentor: Klemen Bajec}
     \fancyfoot[R]{Gimnazija Vič}
     \thispagestyle{fancy}
+    %\setcounter{page}{1}  
 \end{titlepage}
 \selectlanguage{slovene}
 
 % Table of Contents
-\newpage    
-\setcounter{page}{1}
+\newpage
+\quad
+\thispagestyle{empty}
+\newpage
 \tableofcontents
 \newpage
+\section{Uvod}
+Kaj je zaznava trkov?
+
+Zaznava trkov je pomembna na več različnih področjih:
+\begin{itemize}
+    \item Programska oprema za računalniško podprt razvoj (orodja CAD)
+    \item Robotika
+    \item Fizikalne simulacije
+    \item Videoigre
+\end{itemize}
+Problemi:
+\begin{itemize}
+    \item Iskanje trkov je samo po sebi kvadratno kompleksno.
+    \item Zato je večina postopkov pospeševanja zaznave trkov samo filtriranje parov objektov, ki se ne morejo zaleteti.
+    \item Samo filtriranje je odvisno od pristopa, a ponavadi poskuša zagotoviti, da se časovno potratno izvajanje zaznave trkov zgodi na čim manjšem številu objektov.
+    \item Za filtriranje so velikokrat potrebne podatkovne strukture, ki sistem, v katerem iščemo trke, razdelijo na prostorske regije, kar omogoči hitro zmanjševanje števila objektov, ki jih moramo obravnavati.
+\end{itemize}
+
+
+Navajeni smo, da učinkovitost merimo samo z asimptotičnimi vrednostmi ($1000 \cdot n^2$ je enako
+kompleksno kot $10 \cdot n^2$), saj v svetu algoritmov in dokazovanja kompleksnosti ni smiselnega načina,
+s katerim bi lahko določili te konstantne vrednosti.
+A kljub temu so te konstantne vrednosti zelo pomembne za aplikacije algoritmov v resničnem svetu,
+saj lahko (pri nizkem številu objektov) kljub svoji logaritemski kompleksnosti iskalni algoritem
+s konstantnim faktorjem 850 močno zaostaja za hitrim, a kvadratno kompleksnim algoritmom za zaznavo
+trkov s konstantnim faktorjem 16. Zato je pazljivo eksperimentiranje in določanje mejnih vrednosti ključnega
+pomena za dobro delovanje programov za zaznavo trkov.
+
+Primeri podatkovnih struktur:
+\begin{itemize}
+    \item Hierarhija omejujočih volumnov (R* tree)
+    \item Quadtree -- drevo, ki rekurzivno razdeljuje 2D prostor na 4 dele
+    \item Octree -- verzija drevesa quadtree, ki počne enako s 3D prostorom (in ga razdeli na 8 delov)
+    \item k-dimenzionalno drevo -- drevo, ki rekurzivno razdeljuje prostor po izmenjujočih se dimenzijah
+    \item BSP drevo -- Dvojiško drevo, ki obravnava >1D prostor.
+\end{itemize}
+
+
+Vse te podatkovne strukture organizirajo določena telesa, objekte. Ti objekti so lahko definirani na veliko različnih načinov. Ponavadi se ne organizira direktno objektov, ampak njihove omejujoče volumne. Ključna lastnost omejujočega volumna je:
+Če trčita objekta, vedno trčita tudi njuna omejujoča volumna.
+Na podlagi te lastnosti lahko zaključimo, da se začetni del zaznave trkov lahko izvaja samo z omejujočimi volumni in bomo s tem zaznali tudi vse trke objektov.
+Ko imamo seznam trkov omejujočih volumnov, lahko začnemo s časovno bolj potratnim zaznavanjem trkov med objekti.
+
 
 
 Implementirali smo fizikalni simulator v 2D prostoru, ki zaznava trke med omejujočimi volumni
@@ -58,21 +125,13 @@ simulatorja je zelo pomembno, da je drevo čimbolj uravnoteženo, ter da je čim
 Naša implementacija fizikalnega simulatorja za pospeševanje zaznave trkov uporablja BSP drevo.
 Drevo se razdeljuje po premicah, ki so vzporedne koordinatnima osema.
 
-\lstset{
-    numbers=left,
-    numberstyle=\tiny,
-    basicstyle=\ttfamily\small,
-    keywordstyle=\color{violet},
-    identifierstyle=\color{teal}
-}
-
-Drevo je sestavljeno iz vozlišč, ki so C strukture. Za preprostejšo uporabo je drevo povezano
-navzdol in navzgor - vsako vozlišče ima kazalce na starševsko vozlišče in svoja dva otroka.
+Drevo je sestavljeno iz vozlišč, ki so C strukture (izpis \ref{node_struct}). Za preprostejšo uporabo je drevo povezano
+navzdol in navzgor -- vsako vozlišče ima kazalce na starševsko vozlišče in svoja dva potomca.
 Razdeljevanje poteka s pomočjo dveh spremenljivk: smeri razdelitve (os $x$ ali os $y$) ter
 poziciji razdelitve (primer: $1334.5$). Na tak način lahko funkcije, ki se spuščajo skozi drevo,
 učinkovito določijo naslednje vozlišče, ki ga bodo obiskale\cite{klein_point_2004}. Objekti so v
-drevesu shranjeni le v vozliščih, ki nimajo otrok, torej so na dnu svoje veje drevesa.
-\begin{lstlisting}[float, caption={Struktura vozlišča}, label=vupdate_runner, language=C]
+drevesu shranjeni le v vozliščih, ki nimajo potomcev, torej so na dnu svoje veje drevesa.
+\begin{lstlisting}[float, caption={Struktura vozlišča}, label=node_struct, language=C]
     struct treeNode {
         struct treeNode* left;
         struct treeNode* right;
@@ -83,19 +142,20 @@ drevesu shranjeni le v vozliščih, ki nimajo otrok, torej so na dnu svoje veje 
         struct treeNode* up;
         object* buf; // NULL -> list
         uint64_t places; //bitmask: prazen = 1, zaseden = 0
-        rect_llhh bindrect; //okvir, ki ga zaseda vozlisce
-        unsigned level; // kako globoko v drevesu je vozlisce
+        rect_llhh bindrect; //okvir, ki ga zaseda vozlišče
+        unsigned level; // kako globoko v drevesu je vozlišče
         uint16_t flags;
         uint16_t optindex;
     };
 \end{lstlisting}
+
 Poleg povezav z ostalimi vozlišči in razdeljevanja ima vsako vozlišče tudi možnost kazalca (\lstinline|buf|) na
 del spomina, kjer so shranjeni objekti. Ta kazalec ima tudi to praktično lastnost, da učinkovito
-pokaže, ali je vozlišče na dnu svoje veje drevesa. Vključen je tudi pravokotnik, ki opisuje površino
-vozlišča v simulaciji. Z njegovo pomočjo lahko ugotovimo, ali je treba objekt premestiti v drugo vozlišče.
+pokaže, ali je vozlišče na dnu svoje veje drevesa. Vključen je tudi pravokotnik \lstinline|bindrect|, ki opisuje površino,
+ki jo pokriva vozlišče v simulaciji. Z njegovo pomočjo lahko ugotovimo, ali je treba objekt premestiti v drugo vozlišče.
 Pomemben del vsakega vozlišča je bitna maska \lstinline|places|, ki označuje lokacijo vsakega objekta v kosu
 pomnilnika, kjer so shranjeni. Na ta način lahko z eno bitno operacijo preverimo tudi, ali je v vozlišču
-preveč objektov in ga je treba razdeliti. Z procesorskim ukazom \lstinline|popcount| lahko tudi hitro
+preveč objektov, in ga je treba razdeliti. Z procesorskim ukazom \lstinline|popcount| lahko tudi hitro
 preštejemo objekte.
 Poleg tega je v strukturi tudi bitna maska \lstinline|flags|, ki omogoča označevanje vozlišča, če ima
 kakšen poseben status.
@@ -120,7 +180,7 @@ kakšen poseben status.
       child {node {NULL}}
       child {node {NULL}}
     };
-    \caption{Drevo z vozliščem z objekti}
+    \caption{Drevo z vozliščem z objekti}%
     \label{fig:drevo_z_buf}
 
 \end{figure}
@@ -134,6 +194,44 @@ ključnega pomena. Obstajata dve vrsti iskanja:
 Iskanje točke (objekta), ter iskanje območja (pravokotnika). Iskanje točke je pomembno za
 vstavljanje in ponovno vstavljanje objektov v drevo, iskanje območja pa za zaznavo trkov.
 
+
+Iskanje točke na izpisu \ref{find_parent_node} sicer ni rekurzivno, a pri
+iskanju pravokotnika se srečamo z več potencialnimi zadetki.
+\begin{samepage}
+Iskanje v drevesu poteka na preprost način (prikazan tudi na izpisu \ref{find_parent_node}):
+    \begin{enumerate}
+        \item Začnemo pri korenu drevesa.
+        \item Preverimo, ali ima trenutno vozlišče kazalec na objekte.
+        \item Če kazalec ima, potem vrnemo kazalec na vozlišče.
+        \item Če kazalca nima:
+        \begin{itemize}
+            \item Preverimo, po kateri koordinati se razdeljuje vozlišče.
+            \item Razdelitev primerjamo z relevantno koordinato objekta.
+            \item Glede na primerjavo se premaknemo na levega ali desnega potomca.
+            \item Vrnemo se na korak 2.
+        \end{itemize}    
+    \end{enumerate}
+\end{samepage}
+
+Poleg iskanja točke je za korektno delovanje simulatorja pomembno tudi iskanje pravokotnika. Pri tem postopku
+sledimo podobnemu algoritmu, a ob vsaki razdelitvi vozlišča preverimo, ali se pravokotnik tudi razdeli. V tem
+primeru je treba rekurzivno poklicati funkcijo na obeh potomcih, saj oba vsebujeta del pravokotnika. Zaradi takih
+situacij se pogosto zgodi, da iskanje pravokotnika vrne kazalce na več vozlišč, zato moramo upoštevati možnost
+poljubnega števila zadetkov.
+\subsection{Grajenje drevesa}
+Za grajenje dreves, ki organizirajo prostor, je veliko pristopov. Cilj vsakega pristopa je ponavadi čimbolj
+uravnoteženo drevo. Večina jih je prilagojenih na to, da se objekte, ki jih organiziramo, bere v določenem
+vrstnem redu. Ker je simulator, ki smo ga implementirali, namenjen le raziskovanju, lahko izberemo zelo 
+preprost, a učinkovit način ustvarjanja uravnoteženega drevesa, vstavljanje naključnih objektov.
+
+Ker se lahko zanesemo, da bo naključnost poskrbela za enakomerno, nesekvenčno vstavljanje objektov, se lahko
+izognemo slabo zgrajenim, neuravnoteženim drevesom, kot je drevo na sliki~\ref{fig:drevo_unbal}.
+\begin{figure}
+    \centering
+    \includestandalone{snips_pics/unbal_tree}
+    \caption{Neuravnoteženo drevo, če vstavljamo objekte, urejene po koordinatah.}%
+    \label{fig:drevo_unbal}
+\end{figure}
 \begin{lstlisting}[float, caption={Iskanje vozlišča, ki vsebuje objekt}, label=find_parent_node, language=C]
     treeNode* tree_findParentNode(objTree* tree, object* obj){
         treeNode* currentNode = tree->root;
@@ -159,69 +257,233 @@ vstavljanje in ponovno vstavljanje objektov v drevo, iskanje območja pa za zazn
         }
     }
 \end{lstlisting}
-Iskanje točke na izpisu \ref{find_parent_node} sicer ni rekurzivna, a pri
-iskanju pravokotnika se srečamo z več potencialnimi zadetki.
-\begin{samepage}
-    Iskanje v drevesu poteka na preprost način (prikazan tudi na izpisu \ref{find_parent_node}):
-    \begin{enumerate}
-        \item Začnemo pri korenu drevesa.
-        \item Preverimo, ali ima trenutno vozlišče kazalec na objekte.
-        \item Če kazalec ima, potem vrnemo kazalec na vozlišče.
-        \item Če kazalca nima:
-        \begin{itemize}
-            \item Preverimo, po kateri koordinati se razdeljuje vozlišče.
-            \item Razdelitev primerjamo z relevantno koordinato objekta.
-            \item Glede na primerjavo zamenjamo trenutno vozlišče na levega ali desnega otroka.
-            \item Vrnemo se na korak 2.
-        \end{itemize}    
-    \end{enumerate}
-\end{samepage}
-
-\subsection{Grajenje drevesa}
-Za grajenje dreves, ki organizirajo prostor, je veliko pristopov. Cilj vsakega pristopa je ponavadi čimbolj
-uravnoteženo drevo. Večina jih je prilagojenih na to, da se objekte, ki jih organiziramo, bere v določenem
-vrstnem redu. Ker je simulator, ki smo ga implementirali, namenjen le raziskovanju, lahko izberemo zelo 
-preprost, a učinkovit način ustvarjanja uravnoteženega drevesa, vstavljanje naključnih objektov.
-
-Ker se lahko zanesemo, da bo naključnost poskrbela za enakomerno, nesekvenčno vstavljanje objektov, se lahko
-izognemo slabo zgrajenim, neuravnoteženim drevesom, kot je drevo na sliki \ref{fig:drevo_unbal}.
-\begin{figure}
-    \centering
-    \includestandalone{snips_pics/unbal_tree}
-    \caption{Neuravnoteženo drevo, če vstavljamo objekte, urejene po koordinatah.}
-    \label{fig:drevo_unbal}
-\end{figure}
-
 
 
 Če hočemo objekt vstaviti v drevo, moramo najprej najti pravo vozlišče, nato preveriti,
-ali je slučajno polno, in v tem primeru narediti dva otroka in jima razdeliti objekte.
+ali je slučajno polno, in v tem primeru vozlišču dodati dva potomca in jima razdeliti objekte.
+O tem bomo več povedali pod naslovom Deljenje vozlišč.
+
 Objekti so v svojem kosu pomnilnika razporejeni nepredvidljivo. Razlog za to je, da se nekateri
 morali prestaviti v drugo vozlišče zaradi svoje pozicije zunaj pravokotnika, ki ga pokriva
 njihovo prejšnje vozlišče.
 \subsubsection{Zapis objektov v pomnilniku}
-S tem se lahko učinkovito spopademo tako, da si zapišemo, katera mesta
-v kosu pomnilnika z objekti so polna in katera so prazna. V ta namen uporabljamo \lstinline|uint64_t places|,
-ki je del strukture \lstinline|treeNode|. S pomočjo takega 64-bitnega števila lahko z branjem in pisanjem
-posameznih bitov spremljamo zasedenost kosa pomnilnika do največ 64 objektov, kar je več kot dovolj
-za naše potrebe. Nekaj osnovnih operacij je opisanih v izpisu~\ref{bitmask_examples}:
+Vsako vozlišče, ki lahko vsebuje objekte, ima kazalec na kos pomnilnika, v katerega lahko spravimo
+točno določeno maksimalno število objektov. Da se izognemo nepotrebnim, časovno potratnim dostopom
+do njih, je treba nekaj informacij o objektih zapisati že v strukturo vozlišča.
+
+Dober zapis dosežemo tako, da si zapišemo, katera mesta v kosu pomnilnika z objekti
+so polna in katera so prazna. V ta namen uporabljamo \lstinline|uint64_t places|, ki je del strukture 
+\lstinline|treeNode|. S pomočjo takega 64-bitnega števila lahko z branjem in pisanjem posameznih bitov
+spremljamo zasedenost kosa pomnilnika do največ 64 objektov, kar je več kot dovolj za naše potrebe. 
+Nekaj osnovnih operacij je opisanih v izpisu~\ref{bitmask_examples}:
 \begin{lstlisting}[caption={Uporaba bitne maske za objekte}, label=bitmask_examples, language=C]
     // preveri, ali je na indeksu N objekt
     !(node->places & (1UL << N))
+
+    // preveri, ali je cel kos pomnilnika popisan.
+    // OBJBUFSIZE je največje število objektov.
+    !(node->places & ((1UL << OBJBUFSIZE) -- 1)) 
+
     // indeks prvega prostega mesta
     __builtin_ctzll__(node->places)
+
     // indeks prvega objekta
     __builtin_ctzll__(~node->places)
-    // koliko je objektov
+
+    // koliko je objektov: redko uporabljeno
     __builtin_popcountl__(~node->places)
+
+    // zapišemo, da je prostor N zaseden
+    node->places &= ~(1UL << N)
+
+    // zapišemo, da je prostor N prost
+    node->places |= (1UL << N)
+
+\end{lstlisting}
+\subsubsection{Alokacija pomnilnika}
+Ker ima ta program dokajšnje zahteve po pomnilniškem prostoru, je smiselno namesto sistemskega
+alokatorja \lstinline|malloc(), calloc(), ...| uporabiti lasten, preprostejši alokator.
+Ker se mora sistemski alokator spoprijemati s težavami kot je fragmentacija pomnilnika, sproščanje
+prej alociranih delov pomnilnika in mnogimi drugimi možnostmi, mora zelo pazljivo
+ravnati z alokacijami in izvajati cel kup operacij, ki nam jih pravzaprav znotraj konteksta našega simulatorja
+ni treba izvajati. Zato je smiselno, da implementiramo zelo preprost linearni alokator, ki nam lahko služi kot orodje
+za spremljanje količine porabljenega pomnilnika, poleg tega pa tudi zelo pospeši alokacijo novih struktur.
+Implementirali smo linearni alokator, ki v zakulisju alocira velike kose pomnilnnika s pomočjo
+funkcije \lstinline|calloc()|, koščke teh alokacij pa potem daje funkcijam, ki rabijo pomnilnik.
+Ker naš simulator vse alocirane kose pomnilnika ponovno uporabi, nam na primer sploh ni treba implementirati
+\lstinline|free()|, ki ga sistemski alokator mora imeti. Ker smo simulator sprogramirali na tak način,
+si bodo alokacije znotraj našega alokatorja vedno sledile ena za drugo, brez lukenj. Če bi si na primer želeli
+podatke serializirati take kot so, bi lahko vzeli alokatorjev seznam vseh večjih kosov pomnilnika, jih zlepili
+skupaj in zapisali v datoteko, kar je veliko preprosteje, kot če bi imeli nešteto majhnih sistemskih alokacij.
+\subsection{Deljenje vozlišč}
+Ko število objektov v določenem vozlišču doseže svojo maksimalno vrednost, moramo to vozlišče
+razdeliti na dve. To zahteva alokacijo struktur za dve novi vozlišči in alokacijo vsaj enega novega
+kosa pomnilnika za objekte. Poleg tega je treba vsaj en del objektov prestaviti v drugo vozlišče.
+Proces deljenja vozlišča je torej relativno časovno potraten postopek, ki si ga ne želimo izvajati
+preveč pogosto. Tako se poskušamo izogniti čim več operacijam s pomnilnikom, s čimer prihranimo
+čas in količino porabljenega pomnilnika.
+
+Preden se spustimo v detajle deljenja vozlišč, se moramo spomniti, da iskalne funkcije preverjajo,
+ali ima vozlišče objekte, samo na podlagi njegovega kazalca \lstinline|buf|. To torej pomeni, da mora vozlišče,
+ki ga delimo, na koncu imeti ta kazalec nastavljen na nič.
+
+Cilj deljenja je, da pod vozliščem ustvarimo dva potomca, ki imata vsak svoj del objektov. Med deljenjem
+je treba prilagoditi tudi bitne maske \lstinline|places| vozlišča in obeh potomcev.
+
+Naiven način deljenja vozlišča bi bil lahko:
+\begin{itemize}
+    \item Alociramo dve novi vozlišči, ki bosta potomca.
+    \item Alociramo dva nova kosa pomnilnika za njune objekte.
+    \item Izračunamo mediano x/y koordinat objektov (odvisno od lokacije v drevesu).
+    \item Zapišemo mediano v \lstinline|split| originalnega vozlišča.
+    \item Na podlagi mediane razdelimo objekte med oba potomca. Med kopiranjem
+    posodabljamo bitno masko \lstinline|places| obeh potomcev.
+    \item Originalnemu vozlišču odstranimo kos pomnilnika z objekti.
+\end{itemize}
+Ta način zahteva dve alokaciji in eno odstranitev kosov pomnilnika. Poleg tega moramo tudi prekopirati
+vse objekte iz originalnega kosa pomnilnika v pomnilnik od obeh potomcev, kar zahteva toliko operacij, kot
+je maksimalno število objektov v vozlišču.
+
+Bolj pameten način deljenja vozlišč pa bi potekal tako:
+\begin{itemize}
+    \item Alociramo dve novi vozlišči, ki bosta potomca.
+    \item Alociramo en nov kos pomnilnika za objekte.
+    \item Izračunamo mediano x/y koordinat objektov (odvisno od lokacije v drevesu).
+    \item Na podlagi mediane prestavimo $ \frac{n}{2}$ objektov iz originalnega kosa pomnilnika
+    v drugi kos pomnilnika. Med prestavljanjem posodabljamo \lstinline|places| vozlišča in njegovega potomca.
+    \item Iz originalnega vozlišča prestavimo kazalec na njegov pomnilnik na njegovega potomca.
+    \item Iz originalnega vozlišča prekopiramo bitno masko \lstinline|places| v potomca, ki je podedoval tudi pomnilnik.
+\end{itemize}
+Drugi način zahteva eno alokacijo in samo $\frac{n}{2}$ operacij premikanja. To pomeni, da je postopek
+dvakrat hitrejši, kar je zelo dobrodošla sprememba.
+
+Sama funkcija za deljenje vozlišč je zelo dolga, zato si bomo ogledali samo najpomembnejši
+del, to je prestavljanje objektov. Potrebujemo še nekaj konteksta glede kode: \lstinline|parent|
+je vozlišče, ki ga cepimo. \lstinline|dest| je vozlišče, kamor kopiramo objekte. Naloga vrstice
+8 je, da standardizira operacijo za obe mogoči razdelitvi: $x$ in $y$. Strojna koda, v katero se to
+prevede, je enaka, kot če bi napisali \lstinline|parent->buf[i].x|, a s pomembno razliko, da izbira
+polja \lstinline|x| ali \lstinline|y| v strukturi ni vnaprej določena med prevajanjem.
+
+\begin{lstlisting}[caption={Razdeljevanje objektov med potomcema}, label=balance_buffers, language=C]
+if(parent->split.isx) 
+    coordoffset = offsetof(object, x);
+else 
+    coordoffset = offsetof(object, y);
+unsigned destwritten = 0;
+for(unsigned i = 0; i < OBJBUFSIZE; i++){
+    //first value is the x or y field of the i-th struct in buf
+    if(*(double*)( (char*)&(parent->buf[i]) + coordoffset )
+     > parent->split.value)
+        {
+        memcpy(dest->buf+destwritten, parent->buf+i, sizeof(object));
+        memset(parent->buf + i, '\0', sizeof(object));
+        parent->places |= 1UL << i; // prazen
+        dest->places &= ~(1UL << destwritten); // zaseden
+        destwritten++;
+    }
+}
 \end{lstlisting}
 
+\section{Zaznava trkov}
+Vse funkcije in mehanizme, ki smo si jih ogledali v prejšnjih poglavjih, lahko sedaj uporabimo
+za osrednji del našega simulatorja, zaznavo trkov.
+Preden začnemo z zaznavanjem trkov, se moramo zares spoznati, s kakšnimi objekti se pravzaprav ukvarjamo.
+\begin{lstlisting}[caption={Struktura objekta}, label=object_struct, language=C]
+struct object {
+    double x;
+    double y;
+    speed v;
+    float s;
+    unsigned m;
+    struct object* hit; // kazalec na objekt v kontaktu
+    unsigned long id;
+    unsigned flags;
+};
+\end{lstlisting}
+Objekt ima poleg koordinat \lstinline|x| in \lstinline|y| tudi hitrost \lstinline|v| (vektor dveh \lstinline|double|),
+velikost \lstinline|s| (radij kroga) ter maso \lstinline|m|. Od nefizikalnih podatkov ima
+identifikacijsko številko \lstinline|id| in bitno masko \lstinline|flags| za dodatne označbe.
+
+V strukturi je tudi \lstinline|hit|, kazalec na drug objekt. Funkcija za iskanje trkov v ta kazalec zapiše naslov
+drugega objekta, ki je trčil z njim. Funkciji, ki procesirata podatke o trkih, prebereta
+ta kazalec in izračunata nove hitrosti in pozicije objektov. To je zelo pomanjkljiv sistem, saj ne omogoča,
+da en objekt trči z več drugimi hkrati. To včasih vodi do fizikalno nepravilnega dogajanja, ki je pa redko
+in ne vpliva zelo na našo simulacijo. Bolj smiseln pristop bi bil, da bi implementirali čakalno vrsto, kamor
+bi funkcija za iskanje trkov vstavljala kazalce na objekte, funkciji ki procesirata podatke o trkih pa bi jih
+upoštevali pri simulaciji.
+
+Zaznavanje trkov poteka kot rekurzivna funkcija, ki gre skozi vse objekte v drevesu, za vsakega poišče vozlišča,
+ki vsebujejo njegovo območje vpliva -- kvadrat okoli objekta. Celotna funkcija je v izpisu~\ref{hit_detect}.
+
+\begin{lstlisting}[float, breaklines=true, postbreak=\mbox{\textcolor{purple}{$\hookrightarrow$}\space}, caption={Zaznava trkov}, label=hit_detect, language=C]
+static int hit_flagObjects_aux(objTree* tree, treeNode* node){
+  if(!node->buf){
+    hit_flagObjects_aux(tree, node->left);
+    hit_flagObjects_aux(tree, node->right);
+    return 0;
+  }
+  for(unsigned i = 0; i < OBJBUFSIZE; i++){
+    if(node->buf[i].s && !node->buf[i].hit){      
+      // iskanje pravokotnika okoli objekta
+      unsigned numResults = tree_findRect_shallow(tree,node,
+        (rect_ofex){ //pravokotnik okoli objekta
+          .offset = (point){
+            .x = node->buf[i].x - (node->buf[i].s + MAXOBJSIZE),
+            .y = node->buf[i].y - (node->buf[i].s + MAXOBJSIZE),
+          },
+          .extent = (extent){
+            .width = 2*(node->buf[i].s + MAXOBJSIZE),
+            .height = 2*(node->buf[i].s + MAXOBJSIZE)
+          }},
+        tree->searchbuf
+      );
+      for(unsigned bufindex = 0; bufindex < numResults; bufindex++){
+        object* buf = tree->searchbuf[bufindex];
+        for(unsigned j = 0; j < OBJBUFSIZE; j++){
+          //ne smemo zadeti sami sebe
+          if(buf + j == node->buf + i) continue; 
+          if(buf[j].s && !buf[j].hit){
+            double dist = SQUARE(buf[j].x - node->buf[i].x) + SQUARE(buf[j].y - node->buf[i].y);            
+            if(dist < SQUARE(node->buf[i].s + buf[j].s)){
+              node->buf[i].hit = buf + j;
+              buf[j].hit = node->buf + i;
+              break;
+  }}}}}}
+  return 0;
+}
+\end{lstlisting}
+Ker je iskanje trkov samo po sebi kvadratna operacija, bomo gotovo potrebovali dve \lstinline[language=C]|for| zanki.
+Prva zanka bo šla skozi objekte v vsakem vozlišču, druga zanka pa bo šla skozi rezultate iskanja območja vpliva okoli
+objekta (klic funkcije \lstinline|tree_findRectShallow|). Ker so rezultati vozlišča in ne objekti, moramo iti skozi vse
+objekte v vsakem vozlišču, ki ga je našla iskalna funkcija. Ponavadi je to samo eno (lastno vozlišče) ali kvečjemu dve
+vozlišči (objekt je ob robu lastnega vozlišča).
+
+Večje število rezultatov dobimo samo takrat, ko je objekt v bližini trojne ali četverne meje,
+torej v kotu lastnega vozlišča. Skozi veliko vozlišč moramo tudi takrat, ko je gostota 
+objektov na določenem kraju velika. Simulator je v tem primeru primoran ustvariti veliko novih vozlišč, ki so 
+majhna in vedno bolj primerljiva z območji vpliva okoli objektov.
+
+
+\newpage
+\section{Eksperimentalni del}
+
+\subsection{Velikost škatel}
+
+\subsection{Gostota objektov}
+
+\subsection{Reciklaža vozlišč}
+\subsubsection{Gravitacija}
 \newpage
 \lstlistoflistings{}
 \bibliographystyle{plain}
 \bibliography{raziskovalna.bib}
 % End Document
 \end{document}
+% =============================================================================================
+% =============================================================================================
+% =============================================================================================
+% =============================================================================================
+% =============================================================================================
 % =============================================================================================
 % Sections and Content
 \begin{comment}
@@ -236,9 +498,9 @@ za naše potrebe. Nekaj osnovnih operacij je opisanih v izpisu~\ref{bitmask_exam
     \end{itemize}
     Kako bodo videti poglavja?
     \begin{itemize}
-        \item Teoretični uvod (kompleksnost, drevesa - k-d, BSP, ...)
+        \item Teoretični uvod (kompleksnost, drevesa -- k-d, BSP, ...)
         \begin{itemize}[label=$\diamond$, left=0.5cm]
-            \item kompleksnost - zakaj ne bruteforce?
+            \item kompleksnost -- zakaj ne bruteforce?
             \item vrste dreves\cite{klein_point_2004}
             \item zakaj k-d?
             \item opis podatkovnih struktur (slikice?)
@@ -259,7 +521,7 @@ Uvod v zaznavo trkov (najdi dober članek, ki govori o tem?)
     \begin{itemize}
         \item kompleksnost in bruteforce
         \item zato je podatkovna struktura pomembna
-        \item obstajajo knjižnice - Kaj implementirajo?
+        \item obstajajo knjižnice -- Kaj implementirajo?
         \item glavne podatkovne strukture, zakaj prav k-d drevo?
         \item razložim graf kompleksnosti ($n^2$ vs $n*\log(n)$)
     \end{itemize}
