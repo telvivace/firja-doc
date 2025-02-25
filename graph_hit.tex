@@ -1,35 +1,37 @@
-\documentclass{article}
+\documentclass{standalone}
 \usepackage{pgfplots}
 \usepackage{siunitx}
 \usepgfplotslibrary{units} % Allows to enter the units nicely
 %\usepgfplotslibrary{external}
 %\tikzexternalize % Enable externalization
-\setlength{\textwidth}{18.5cm}
-\setlength{\oddsidemargin}{-2cm}
+
 \input{dataln/settings.tex}
 \begin{document}
 
 \begin{tikzpicture}
     \begin{axis}[
-        width=\textwidth, % Scale the plot to \linewidth
         grid=major,
         ymin=\customymin,
         ymax=\customymax,
         grid style={dashed,gray!30},
         xlabel=Korak, % Set the labels
+        xlabel style={at={(0.5, -0.05)}},
         ylabel=Čas ,
         y unit=\si{\SIUnitSymbolMicro s},
-        legend style={at={(0.5,-0.2)},anchor=north},
+        legend style={at={(0.5,-0.25)},anchor=north},
         x tick label style={rotate=90,anchor=east},
-        mark size=0.1em,
+        mark size=0.025em,
         only marks,
       ]
       \addplot
       % add a plot from table; you select the columns by using the actual name in
       % the .csv file (on top)
-      table[x=col1,y=col2, col sep=comma]{dataln/timing_hit.csv}; 
-      \legend{Plot}
+      table[x=col1,y=col2, col sep=comma]{dataln/timing_hit.csv};
+      \addplot[mark=*, color=red]
+      table[x=col1,y=col2, col sep=comma]{dataln/timing_vec.csv};
+      \legend{Zaznava trkov}
     \end{axis}
+    
   \end{tikzpicture}
 
 \end{document}

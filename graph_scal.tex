@@ -1,11 +1,10 @@
-\documentclass{article}
+\documentclass{standalone}
 \usepackage{pgfplots}
 \usepackage{siunitx}
 \usepgfplotslibrary{units} % Allows to enter the units nicely
 %\usepgfplotslibrary{external}
 %\tikzexternalize % Enable externalization
-\setlength{\textwidth}{18.5cm}
-\setlength{\oddsidemargin}{-2cm}
+
 \input{dataln/settings.tex}
 \begin{document}
 
@@ -28,7 +27,6 @@
       % add a plot from table; you select the columns by using the actual name in
       % the .csv file (on top)
       table[x=col1,y=col2, col sep=comma]{dataln/timing_scal.csv}; 
-      \legend{Plot}
     \end{axis}
   \end{tikzpicture}
 
