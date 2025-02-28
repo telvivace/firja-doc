@@ -1,0 +1,41 @@
+\documentclass{standalone}
+\usepackage{pgfplots}
+\usepackage{siunitx}
+\usepgfplotslibrary{units} % Allows to enter the units nicely
+%\usepgfplotslibrary{external}
+%\tikzexternalize % Enable externalization
+
+\input{dataln/settings.tex}
+\begin{document}
+
+\begin{tikzpicture}
+  \begin{axis}[
+    %\input{local_pgf_nums.tex}
+    grid=major,
+    grid style={dashed,gray!30},
+    xlabel=Koraki, % Set the labels
+    xlabel style={at={(0.5, -0.05)}},
+    ylabel=Čas,
+    y unit=\si{\SIUnitSymbolMicro s},
+    ymax=4000,
+    legend style={at={(0.5,-0.3)},anchor=north},
+    x tick label style={rotate=90,anchor=east},
+    y tick label style={anchor=east, /pgf/number format/fixed},
+    cycle list name=color list,
+    stack plots=y,
+    area style,
+    ]
+    \addplot table[x=col1, y=col2, col sep=comma]{data/final/10k_1k_avg100/norecycle/grav/timing_vec.csv}
+      \closedcycle;
+    \addplot table[x=col1, y=col2, col sep=comma]{data/final/10k_1k_avg100/norecycle/grav/timing_scal.csv}
+      \closedcycle;  
+    \addplot table[x=col1, y=col2, col sep=comma]{data/final/10k_1k_avg100/norecycle/grav/timing_hit.csv}
+      \closedcycle;
+    \legend{Posodabljanje vektorjev, Premikanje objektov, Zaznava trkov}
+
+    \end{axis}
+  \end{tikzpicture}
+
+\end{document}
+
+%table[x=col1,y=col2, col sep=comma] {data/timing_frames.csv}; 

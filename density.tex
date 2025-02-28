@@ -1,0 +1,42 @@
+\documentclass{standalone}
+\usepackage{pgfplots}
+\usepackage{siunitx}
+\usepgfplotslibrary{units} % Allows to enter the units nicely
+%\usepgfplotslibrary{external}
+%\tikzexternalize % Enable externalization
+
+\input{dataln/settings.tex}
+\begin{document}
+
+\begin{tikzpicture}
+  \begin{semilogxaxis}[
+    %\input{local_pgf_nums.tex}
+    /pgf/number format/use comma,
+    /pgf/number format/1000 sep={.},
+    grid=major,
+    grid style={dashed,gray!30},
+    xlabel=Število kvadratnih enot na objekt, % Set the labels
+    ylabel=Čas ,
+    y unit=\si{\SIUnitSymbolMicro s},
+    legend style={at={(0.5,-0.2)},anchor=north},
+    x tick label style={rotate=90,anchor=east},
+    y tick label style={anchor=east, /pgf/number format/fixed},
+    cycle list name=color list,
+    stack plots=y,
+    area style,
+    ]
+    \addplot table[x=density, y=vec, col sep=comma]{data/final/10k_1k_avg100/timing_sum_density_log.csv}
+      \closedcycle;
+    \addplot table[x=density, y=scal, col sep=comma]{data/final/10k_1k_avg100/timing_sum_density_log.csv}
+      \closedcycle;  
+    \addplot
+    table[x=density, y=hit, col sep=comma]{data/final/10k_1k_avg100/timing_sum_density_log.csv}
+      \closedcycle;
+    \legend{Posodabljanje vektorjev, Premikanje objektov, Zaznava trkov}
+
+    \end{semilogxaxis}
+  \end{tikzpicture}
+
+\end{document}
+
+%table[x=col1,y=col2, col sep=comma] {data/timing_frames.csv}; 
