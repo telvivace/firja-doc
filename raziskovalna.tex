@@ -10,6 +10,7 @@
 \usepackage{wrapfig}
 \usepackage{adjustbox}
 \usepackage{libertinus}
+\usepackage{graphicx}
 %\usepackage{setspace}
 %\setstretch{1.25}
 \usetikzlibrary{graphs,graphdrawing}
@@ -18,6 +19,7 @@
 \usepackage[english,slovene]{babel} %language support
 \usepackage{listings}
 \usepackage[mode=buildnew]{standalone}
+
 % Header and Footer Setup
 \pagestyle{fancy}
 \fancyhf{} % Clear all header and footer fields
@@ -55,18 +57,17 @@
 % Title Page
 \begin{titlepage}
     \title{\Huge Optimizacija zaznave trkov v 2D}
-    \author{Klemen Javoršek}
-    \date{Ljubljana, 2024/2025}
+    \date{}
     \maketitle
     \renewcommand{\headrulewidth}{0cm}
     \fancyhf{}
-    \fancyfoot[L]{Mentor: Klemen Bajec}
-    \fancyfoot[R]{Gimnazija Vič}
+    \fancyfoot[L]{Mentor: Klemen Bajec\\Avtor: \author{Klemen Javoršek}}
+    \fancyfoot[R]{Gimnazija Vič\\Ljubljana, 2024/2025}
     \thispagestyle{fancy}
-    %\setcounter{page}{1}  
+    %\setcounter{page}{1} 
 \end{titlepage}
 \selectlanguage{slovene}
-
+\graphicspath{snips}
 % Table of Contents
 \newpage
 \quad
@@ -100,49 +101,85 @@ računalniških igrah, robotiki, programski opremi za računalniško podprt razv
 Najpreprostejši algoritem za zaznavanje trkov bi primerjal vsak objekt z vsakim drugim objektom. Časovna
 zahtevnost takega algoritma bi bila zelo slaba: $O(n^2)$, kjer je $n$ število objektov v sistemu.
 
+Omejujoči volumni so skupina oblik, ki jih algoritmi za zaznavanje trkov uporabljajo namesto dejanskih objektov.
+Ker so objekti pogosto zapletenih oblik, je preverjanje parov objektov lažje izvajati z omejujočimi volumni.
+Taki algoritmi trk natančno preverijo šele takrat, ko sta dva omejujoča volumna trčila. Na ta način se izognejo
+časovno zahtevnemu primerjanju objektov kompleksnih oblik.
+
+Ker je naš simulator namenjen le raziskovanju, lahko celoten postopek poenostavimo: vsi objekti so v obliki
+kroga, kar pomeni, da sploh ne potrebujemo omejujočih volumnov. Na ta način še vedno lahko raziskujemo
+obnašanje takega sistema, hkrati pa odstranimo veliko nepotrebnih komplikacij.
+
 Glavni cilj, ki si ga zastavljamo pri zaznavi trkov, je, da se čim bolje izognemo kvadratni zahtevnosti
 rešitve problema. To lahko dosežemo na več načinov, ki pa imajo vsi eno skupno lastnost -- objekte 
 primerjajo samo s tistimi objekti, ki so jim blizu. Predstavili bomo nekaj načinov razdeljevanja prostora,
 ki se najpogosteje uporabljajo.
 
-\textcolor{red}{OMEJUJOČI VOLUMNI - DODAJ DEFINICIJO}
-
-Pristop \textit{pometi in poreži} je pristop, pri katerem volumne projiciramo na vse koordinatne osi prostora. Če se vse projekcije
+Pristop \textit{pometi in poreži} je pristop, pri katerem omejujoče volumne projiciramo na vse koordinatne osi prostora. Če se vse projekcije
 dveh volumnov med sabo sekajo, volumna upoštevamo kot kandidata za bolj natančno zaznavanje trkov. Da jih lahko med sabo učinkovito
 primerjamo, morajo biti projekcije v sortiranem seznamu. Zaradi zahtevnosti sortiranja projekcij je ta pristop
 učinkovit samo takrat, ko se objekti ne premikajo prehitro.
 
-
-
-\textit{Zaznavanje s pomočjo homogene mreže} je način zaznave trkov, \textcolor{red}{DODAJ TEKST} pri katerem ustvarimo mrežo, ki pokriva prostor, v katerem
+\textit{Zaznavanje s pomočjo homogene mreže} je način zaznave trkov, pri katerem ustvarimo mrežo, ki pokriva prostor, v katerem
 so objekti. Vsak objekt vstavimo v vse celice mreže, ki se z njim prekrivajo. Razmerje med velikostjo mreže in velikostjo
 objektov zelo močno vpliva na učinkovitost pristopa. V idealnem primeru so objekti približno enako veliki ali manjši kot
 je velika celica v mreži. Težave se lahko pojavijo, kadar imamo zelo velik prostor ali zelo
-hitro premikajoče se objekte.  Če algoritma ne implementiramo zelo pazljivo, lahko postane prostorsko ali časovno potraten.
+hitro premikajoče se objekte. Če algoritma ne implementiramo zelo pazljivo, lahko postane prostorsko ali časovno potraten.
 
-\textit{Drevesa, ki razdeljujejo prostor}, so raznolika družina algoritmov. Prostor rekurzivno razdelijo na regije.
-Objekti so shranjeni v regijah, ki sovpadajo z vozlišči na dnu drevesa. Časovna zahtevnost takih
-dreves je ponavadi $n \log(n)$. 
+\textit{Algoritmi z drevesnimi strukturami} so algoritmi, ki za izboljšanje učinkovitosti uporabljajo drevesne strukture.
+Naloga drevesnih struktur je, da simulacijo razdelijo na majhne dele. Objekt, za katerega moramo zaznati trke,
+lahko potem primerjamo samo z objekti v delih drevesa, ki so mu v simulaciji fizično blizu. Časovna učinkovitost 
+iskanja po takih drevesih je ponavadi {\small$\log_{p \cdot r}(n)$}, kjer je $p$ število neposrednih potomcev vsakega vozlišča,
+$r$ število objektov, ki so v vsakem področju shranjeni, $n$ pa število objektov v celotni simulaciji. 
 
-Nekaj popularnih dreves\cite{weller_brief_2013} so \textit{drevesa R} ali \textit{ R*}, drevesi \textit{quadtree} in \textit{octree}, \textit{k-di\-men\-zi\-o\-nal\-na
-drevesa} in njihov posebni primer, drevo BSP (\textit{Binary space partitioning tree}).
+Nekaj popularnih dreves~\cite{weller_brief_2013} so drevesa BVH (\textit{Bounding volume hierarchy -- hierarhija omejujočih volumnov}),
+drevesi \textit{štiriško drevo} in \textit{osmiško drevo}, \textit{k-di\-men\-zi\-o\-nal\-na drevesa} in posebni primer k-di\-men\-zi\-o\-nal\-ni\-h
+dreves, drevo BSP (\textit{Binary space partitioning tree -- dvojiško drevo za razdeljevanje prostora}).
 
 \begin{itemize}
-    \item Hierarhija omejujočih volumnov (R* tree)
-    \item Quadtree -- drevo, ki rekurzivno razdeljuje 2D prostor na 4 dele
-    \item Octree -- verzija drevesa quadtree, ki počne enako s 3D prostorom (in ga razdeli na 8 delov)
-    \item k-dimenzionalno drevo -- drevo, ki rekurzivno razdeljuje prostor po izmenjujočih se dimenzijah
-    \item BSP drevo -- Dvojiško drevo, ki obravnava >1D prostor.
+    \item Hierarhija omejujočih volumnov je drevo, sestavljeno iz omejujočih volumnov, ki vsebujejo
+    druge omejujoče volumne. Obstaja več variacij tega drevesa, ki uporabljajo različne vrste omejujočih volumnov
+    in različne algoritme za grajenje dreves ter iskanje, vstavljanje in brisanje objektov.
+    \item Štiriško drevo je drevo, ki prostor simulacije rekurzivno razdeljuje na štiri enake dele. Uporabno je,
+    ker je zelo preprosto in zato časovno učinkovito.~\cite{re_analysis_1985}
+    \item Osmiško drevo je verzija drevesa štiriško drevo, ki razdeljuje 3-D prostor. To počne na zelo podoben način kot štiriško drevo, ampak
+    prostor namesto na 4 razdeli na 8 enakih delov.~\cite{schnabel_octree-based_2006}
+    \item K-dimenzionalno drevo je drevo, ki prostor razdeljuje s pomočjo ravnin. Objekti na eni strani vsake razdelitvene
+    ravnine spadajo v enega neposrednega potomca, ostali pa v drugega. Drevo je narejeno za prostor s poljubnim številom dimenzij,
+    zato se orientacija ravnin spreminja, ko potujemo po drevesu. Ravnine so vzporedne koordinatnim osem, torej je v
+    $k$-dimenzionalnem drevesu $k$ različnih orientacij razdelitvene ravnine.~\cite{ramasubramanian_generalized_1989}
+    \item Drevo BSP je poseben primer k-dimenzionalnega drevesa, ki obravnava dvodimenzionalen prostor. Razdelitvene
+    ravnine imajo v tem drevesu obliko premic, ki so vzporedne koordinatnima osema.~\cite{chin_iii5_1995}
 \end{itemize}
-\textcolor{red}{REFERENCE IN BOLJŠE DEFINICIJE}
 
-V tej nalogi si bomo ogledali primer implementacije drevesa BSP in njenega delovanja ter različnih
-načinov, s katerimi lahko delovanje naših algoritmov pospešimo. Na osnovi naše implementacije drevesa
+\begin{figure}
+    \centering
+    \adjustbox{max width=0.6\textwidth, fbox}{
+        \includegraphics{screenshot1}
+    }
+    \caption{Prikaz dela simulacije s pomočjo knjižnice SDL2; prikazane so meje vozlišč drevesa in objekti}
+\end{figure}
+
+
+
+Odločili smo se, da bomo naše objekte organizirali s pomočjo drevesa BSP.\@ Na osnovi naše implementacije drevesa
 smo zgradili simulator v dveh dimenzijah in ga opremili s kodo, ki meri porabo časa simulatorja in njegovih
-komponent. Raziskovali bomo, kako spreminjanje lastnosti drevesa vpliva na hitrost delovanja
-našega simulatorja, ter iz tega izpeljali zaključke, ki bi lahko v prihodnosti privedli do bolje zasnovanega
-simulatorja.
+komponent.
 
+Simulator je sestavljen iz štirih zaporedno izvedenih postopkov:
+\begin{enumerate}
+    \item Zaznava trkov
+    \item Popravljanje vektorjev hitrosti objektov in njihovega položaja v drevesu
+    \item Premikanje objektov
+    \item Reciklaža praznih ali skoraj praznih vozlišč
+\end{enumerate}
+
+V nadaljevanju naloge bomo opisali, kako je drevo BSP zapisano v pomnilniku, kako delujejo različni
+algoritmi v tem drevesu, in kako delujejo pomožne funkcije, ki ne izvajajo zaznave trkov. Po tem opisu
+bomo raziskovali, kako spreminjanje lastnosti drevesa vpliva na hitrost delovanja našega simulatorja,
+ter iz tega izpeljali zaključke, ki bi lahko v prihodnosti privedli do bolje zasnovanega simulatorja.
+
+Celotna izvorna koda simulatorja je objavljena na spletni strani Github: https://github.com/telvivace/firja/tree/mr25
 \newpage
 \subsection{Hipoteze}
 \begin{enumerate}
@@ -154,7 +191,6 @@ je simulator najbolj učinkovit.
 \end{enumerate}
 
 \newpage
-\textcolor{red}{DODAJ KRATEK OPIS SIMULATORJA KOT CELOTE, DA VEMO, O ČEM SE GOVORI}
 \section{Drevo objektov}
 
 
@@ -193,8 +229,10 @@ Razdeljevanje poteka s pomočjo dveh spremenljivk: smeri razdelitve (po osi $x$ 
 pozicije razdelitve (primer: 1334,5). Na tak način lahko funkcije, ki se spuščajo po drevesu,
 učinkovito določijo naslednje vozlišče, ki ga bodo obiskale. Objekti so v
 drevesu shranjeni le v vozliščih, ki nimajo potomcev, to so končna vozlišča ali listi.
+V vsakem vozlišču je tudi \lstinline|buf|, kazalec na del pomnilnika, v katerem so shranjeni objekti.
+Ena od praktičnih lastnosti kazalca je, da pokaže, ali je vozlišče končno vozlišče.
 
-\begin{lstlisting}[float, caption={Struktura vozlišča}, label=node_struct, language=C]
+\begin{lstlisting}[caption={Struktura vozlišča}, label=node_struct, language=C]
     struct treeNode {
         struct treeNode* left;
         struct treeNode* right;
@@ -212,8 +250,7 @@ drevesu shranjeni le v vozliščih, ki nimajo potomcev, to so končna vozlišča
     };
 \end{lstlisting}
 
-V vsakem vozlišču je tudi kazalec (\lstinline|buf|) na
-del pomnilnika, v katerem so shranjeni objekti. Ena od praktičnih lastnosti kazalca je, da pokaže, ali je vozlišče končno vozlišče.
+
 V vozlišču je shranjen tudi pravokotnik \lstinline|bindrect|: ta opisuje površino, ki jo pokriva vozlišče v simulaciji.
 Z njegovo pomočjo lahko ugotovimo, ali je treba objekt premestiti v drugo vozlišče.
 Pomemben del vsakega vozlišča je bitna maska \lstinline|places|, ki označuje lokacijo vsakega objekta v kosu
@@ -235,6 +272,8 @@ vstavljanje in ponovno vstavljanje objektov v drevo, iskanje območja pa za zazn
 
 Iskanje točke na izpisu \ref{find_parent_node} sicer ni rekurzivno, a smo v rekurzijo primorani
 pri iskanju območja, in sicer zaradi tega, ker se lahko območje, ki ga iščemo, prekriva z več različnimi vozlišči.
+Temu algoritmu ni treba biti rekurziven, saj vedno izbere samo eno pot po drevesu, zato lahko namesto
+rekurzije uporabimo kar zanko \lstinline[language=C]{for}.
 
 \begin{samepage}
 Iskanje v drevesu poteka na preprost način (gl.\ tudi izpis~\ref{find_parent_node}):
@@ -252,31 +291,14 @@ Iskanje v drevesu poteka na preprost način (gl.\ tudi izpis~\ref{find_parent_no
     \end{enumerate}
 \end{samepage}
 
-Za pravilno delovanje simulatorja je poleg iskanja točke pomembno tudi iskanje pravokotnika. Pri tem postopku
-sledimo podobnemu algoritmu kot je iskanje točke. Razlika med algoritmoma je, da moramo pri iskanju pravokotnika
+Za pravilno delovanje simulatorja je poleg iskanja točke pomembno tudi iskanje pravokotnika. Algoritem je zelo podoben
+iskanju točke. Razlika med algoritmoma je, da moramo pri iskanju pravokotnika
 ob vsaki razdelitvi vozlišča preveriti, ali se pravokotnik prekriva s premico, ki deli vozlišče. V tem
-primeru je treba rekurzivno poklicati funkcijo na obeh potomcih, saj oba vsebujeta del pravokotnika. Zaradi takih
-situacij se pogosto zgodi, da iskanje pravokotnika vrne kazalce na več vozlišč, zato lahko dobimo poljubno število
-zadetkov.
+primeru je treba rekurzivno poklicati funkcijo na obeh neposrednih potomcih, saj oba vsebujeta del pravokotnika. Zaradi takih
+situacij se pogosto zgodi, da iskanje pravokotnika vrne kazalce na več vozlišč, zato moramo računati na poljubno število
+rezultatov iskanja.
 
-\textcolor{red}{Napiši drugi algoritem!}
-
-\subsection{Grajenje drevesa}
-
-\begin{wrapfigure}{r}{0.6\textwidth}
-    \centering
-    \includestandalone{snips_pics/unbal_tree}
-    \caption{Neuravnoteženo drevo, če vstavljamo objekte, urejene po koordinatah}%
-    \label{fig:drevo_unbal}
-\end{wrapfigure}
-
-Za grajenje dreves, ki organizirajo prostor, obstaja veliko pristopov. Cilj vsakega pristopa je ponavadi čimbolj
-uravnoteženo drevo. Večina jih je prilagojenih na to, da se objekte, ki jih organiziramo, bere v določenem
-vrstnem redu. Ker želimo z našim simulatorjem le raziskovati, lahko izberemo zelo 
-preprost, a učinkovit način ustvarjanja uravnoteženega drevesa: vstavljanje naključnih objektov.
-
-Ker se lahko zanesemo na to, da bo naključnost poskrbela za enakomerno, nesekvenčno vstavljanje objektov, se lahko
-izognemo slabo zgrajenim, neuravnoteženim drevesom, kakršno je drevo na sliki~\ref{fig:drevo_unbal}.
+\newpage
 
 \begin{lstlisting}[float, caption={Iskanje vozlišča, ki vsebuje objekt}, label=find_parent_node, language=C]
     treeNode* tree_findParentNode(objTree* tree, object* obj){
@@ -305,6 +327,43 @@ izognemo slabo zgrajenim, neuravnoteženim drevesom, kakršno je drevo na sliki~
 \end{lstlisting}
 
 
+Algoritem za iskanje pravokotnika v drevesu lahko opišemo na naslednji način:
+\begin{samepage}
+    \begin{enumerate}
+        \item Preverimo, ali ima trenutno vozlišče kazalec na pomnilnik z objekti (torej je končno vozlišče).
+        \item Če kazalec ima, potem je to končno vozlišče. Ta kazalec dodamo na seznam rezultatov.
+        \item Če kazalca nima:
+        \begin{itemize}
+            \item Preverimo, po kateri koordinati ($x$,$y$) je vozlišče razdeljeno.
+            \item Razdelitev primerjamo z našim iskalnim pravokotnikom.
+            \item Če razdelilna premica seka pravokotnik, dvakrat pokličemo sami sebe.
+            Pokličemo se z obema deloma pravokotnika.
+        \end{itemize}
+    \end{enumerate}
+\end{samepage}
+
+\newpage
+\subsection{Grajenje drevesa}
+
+\begin{wrapfigure}{r}{0.6\textwidth}
+    \centering
+    \includestandalone{snips/unbal_tree}
+    \caption{Neuravnoteženo drevo, če vstavljamo objekte, urejene po koordinatah}%
+    \label{fig:drevo_unbal}
+\end{wrapfigure}
+
+Za grajenje dreves obstaja veliko pristopov. Cilj vsakega pristopa je ponavadi čimbolj
+uravnoteženo drevo. Večina jih je prilagojenih na to, da moramo v drevo vstavljati že vnaprej
+narejene objekte, ki jih želimo organizirati. Včasih so takšni objekti na urejeni po položaju v prostoru,
+kar lahko povzroča težave. Ker želimo z našim simulatorjem le raziskovati, lahko izberemo zelo 
+preprost, a učinkovit način ustvarjanja uravnoteženega drevesa: vstavljanje naključnih objektov.
+
+Vstavljanje naključno izbranih objektov v drevo poskrbi, da bo novonastalo drevo dobro uravnovešeno.
+Če bi objekte vstavljali urejene po lokaciji, bi nastalo slabo zgrajeno, neuravnoteženo drevo, kot je
+drevo na sliki~\ref{fig:drevo_unbal}.
+
+
+
 Če hočemo objekt vstaviti v drevo, moramo najprej najti pravo vozlišče, nato preveriti,
 ali je slučajno polno, in v tem primeru vozlišču dodati dva potomca ter jima razdeliti objekte.
 (O tem bomo več povedali pod naslovom Deljenje vozlišč)
@@ -320,8 +379,9 @@ do teh objektov, moramo nekaj informacij o njih zapisati že v strukturo vozliš
 Podatek, ali je določeno mesto polno ali prazno, lahko zapišemo z enim bitom. Ker je objektov več,
 moramo bite sestaviti v bitno masko. V ta namen uporabljamo \lstinline|uint64_t places|, ki je v strukturi 
 \lstinline|treeNode|. S pomočjo takega 64-bitnega števila lahko spremljamo zasedenost kosa pomnilnika 
-do največ 64 objektov, kar je več kot dovolj za naše potrebe. 
+do največ 64 objektov, kar je več kot dovolj za naše potrebe.
 
+\newpage
 Nekaj osnovnih operacij~\cite{gcc_documentation} je opisanih v izpisu~\ref{bitmask_examples}:
 \begin{lstlisting}[caption={Uporaba bitne maske za objekte}, label=bitmask_examples, language=C]
     // preveri, ali je na indeksu N objekt
@@ -337,7 +397,7 @@ Nekaj osnovnih operacij~\cite{gcc_documentation} je opisanih v izpisu~\ref{bitma
     // indeks prvega objekta
     __builtin_ctzll__(~node->places)
 
-    // koliko je objektov: redko uporabljeno
+    // koliko je objektov
     __builtin_popcountl__(~node->places)
 
     // zapišemo, da je prostor N zaseden
@@ -347,7 +407,11 @@ Nekaj osnovnih operacij~\cite{gcc_documentation} je opisanih v izpisu~\ref{bitma
     node->places |= (1UL << N)
 
 \end{lstlisting}
+
+
 \subsubsection{Alokacija pomnilnika}
+
+\looseness=-2
 Ker ta program lahko zahteva veliko pomnilniškega prostora, je smiselno, da namesto sistemskega
 alokatorja \lstinline|malloc(), calloc(), ...| uporabimo lasten, preprostejši alokator.
 Ker se mora sistemski alokator spoprijemati s težavami, kot so: fragmentacija pomnilnika, sproščanje
@@ -358,10 +422,10 @@ za spremljanje količine porabljenega pomnilnika, predvsem pa zelo pospeši alok
 Implementirali smo linearni alokator, ki v zakulisju alocira velike kose pomnilnika s pomočjo
 funkcije \lstinline|calloc()|, koščke teh alokacij pa potem daje funkcijam, ki pomnilnik uporabljajo.
 Ker naš simulator vse alocirane kose pomnilnika ponovno uporabi, nam na primer sploh ni treba implementirati
-funkcije \lstinline|free()|, ki jo sistemski alokator mora zagotoviti. Ker smo simulator sprogramirali na tak način,
-si bodo bloki pomnilnika znotraj našega alokatorja vedno sledili drug za drugim, brez lukenj. Če bi na primer želeli
-podatke serializirati take, kot so, bi lahko vzeli alokatorjev seznam vseh večjih kosov pomnilnika, jih zlepili
-skupaj in zapisali v datoteko. To je veliko preprosteje, kot če bi imeli nešteto majhnih sistemskih alokacij.
+funkcije \lstinline|free()|, ki jo sistemski alokator mora zagotoviti. Alocirani bloki pomnilnika znotraj našega
+alokatorja si vedno sledijo eden za drugim, brez lukenj. Če bi želeli podatke serializirati take, kot so,
+bi vzeli alokatorjev seznam vseh večjih kosov pomnilnika, jih zlepili skupaj in zapisali v datoteko.
+To je veliko preprosteje, kot če bi imeli nešteto majhnih sistemskih alokacij.
 
 \subsection{Deljenje vozlišč}
 Ko število objektov v določenem vozlišču doseže maksimalno vrednost, moramo to vozlišče
@@ -431,6 +495,7 @@ for(unsigned i = 0; i < OBJBUFSIZE; i++){
     }
 }
 \end{lstlisting}
+\newpage
 \section{Delovanje simulatorja}
 \subsection{Zaznava trkov}
 Vse funkcije in mehanizme, ki smo si jih do zdaj ogledali, lahko uporabimo za osrednji del
@@ -543,6 +608,7 @@ Preden funkcija začne obdelovati objekte v vozlišču, preveri, ali je trenutno
 Pri tem upošteva kriterij, da ima največ {\small$ \frac{1}{4}$} največjega dovoljenega števila objektov na vozlišče.
 V tem primeru funkcija \lstinline{tree_OptqueueSubmit()} to vozlišče vstavi v čakalno vrsto.
 Pred mora seveda preveriti, ali je to vozlišče že v čakalni vrsti, sicer bi čakalna vrsta nezadržno rasla.
+\newpage
 \begin{lstlisting}[caption={\lstinline|vector_update()| -- Reciklaža}, label=vectorupdate2, language=C]
 #define NFLAG_IN_OPTQUEUE 1U
 
@@ -582,6 +648,7 @@ Ta postopek lahko poenostavimo. Formula za hitrost centra mase ostane enaka, zdr
 \[
 v_{A'} = - v_A + 2\cdot v_{cm}
 \]
+\newpage
 Izpis~\ref{vectorupdate3} prikazuje implementacijo te formule. Za lažjo berljivost so matematični izrazi izločeni.
 \begin{lstlisting}[caption={\lstinline|vector_update()| -- Upoštevanje trkov}, label=vectorupdate3, language=C]
 for(unsigned i = 0; i < OBJBUFSIZE; i++){
@@ -646,7 +713,7 @@ in dodatno obremeni alokator. Če se alokator hoče izogniti prekomerni uporabi 
 prostim kosom znotraj svojih blokov pomnilnika, in jih ob novih alokacijah vrniti v obtok. Prednost tega
 pristopa je, da dolgoročno ob enakem številu objektov količina porabljenega pomnilnika ostane enaka.
 To na žalost pomeni, da bo alokator ob vsaki alokaciji porabil več časa. Pristop je uporaben,
-če imamo zelo velik prostor ter majhno število objektov, za katere je ni zelo verjetno, da se bodo spet
+če imamo zelo velik prostor ter majhno število objektov, za katere ni zelo verjetno, da se bodo spet
 vrnili tja, kjer so že bili prej.
 \begin{wrapfigure}{r}{0.5\textwidth}
     \centering
@@ -707,17 +774,16 @@ for(unsigned j = 0; j < numObjects_src; j++){
 }
 \end{lstlisting}
 
-\textcolor{red}{MOGOČE ZAKLJUČEK}
 %****************************************************************************************
 %                                 EKSPERIMENTALNI DEL                                   *
 %****************************************************************************************
 \newpage
 \section{Eksperimentalni del}
 
-Za učinkovitost takih simulatorjev so ključne posebne podatkovne strukture, kakršna je naša.
-Ker je časovna učinkovitost eden od najpomembnejših kriterijev za razvoj, jo moramo tudi mi zelo temeljito
-obravnavati. Preučili bomo nekaj dejavnikov, ki pomembno vplivajo na hitrost simuliranja,
-in premislili, kako lahko naš simulator prilagodimo, da bo čim bolj učinkovit. 
+Ker je časovna učinkovitost eden od najpomembnejših kriterijev za razvoj programske opreme,
+jo moramo tudi mi zelo temeljito obravnavati. Preučili bomo nekaj dejavnikov, ki pomembno
+vplivajo na hitrost simuliranja, in premislili, kako lahko naš simulator prilagodimo,
+da bo čim bolj učinkovit. 
 
 \subsection{Število objektov}
 
@@ -754,7 +820,7 @@ Na grafu ta faktor vidimo kot rahlo ukrivljenost navzgor, če seveda ignoriramo 
     \adjustbox{max width=0.5\textwidth}{
         \includestandalone{boxsizes}
     }
-    \caption{Vpliv števila objektov v vozlišču na hitrost simulatorja}
+    \caption{Vpliv števila objektov v vozlišču na hitrost simulatorja}%
     \label{boxsizes_data}
 \end{wrapfigure}
 
@@ -835,7 +901,7 @@ od števila objektov v vozlišču odvisnih algoritmov.
     \adjustbox{max width=0.5\textwidth}{
         \includestandalone{density}
     }
-    \caption{Vpliv gostote objektov na hitrost simulatorja}
+    \caption{Vpliv gostote objektov na hitrost simulatorja}%
     \label{density}
 \end{wrapfigure}
 
@@ -933,10 +999,10 @@ in zato količina objektov, ki jih mora funkcija za popravljanje hitrosti proces
 ne glede na število trkov. Izkazalo se je, da je postopek reciklaže  zelo odvisen od razporeditve objektov
 v prostoru, saj za to, da lahko opazno zmanjša število vozlišč, potrebuje trajno prazen prostor.
 
-\textcolor{red}{Naj zaključek razširim z detajli hipotez?}
 \clearpage
 \lstlistoflistings{}
 \listoffigures{}
+\newpage
 \bibliographystyle{plain}
 \bibliography{raziskovalna.bib}
 % End Document
