@@ -13,8 +13,9 @@
 \usepackage{graphicx}
 %\usepackage{setspace}
 %\setstretch{1.25}
-\usetikzlibrary{graphs,graphdrawing}
-\usegdlibrary{trees}
+\usetikzlibrary{arrows.meta,graphs,graphdrawing,shapes.geometric}
+\usegdlibrary{trees,circular,routing,}
+
 \usepackage{color}
 \usepackage[english,slovene]{babel} %language support
 \usepackage{listings}
@@ -31,8 +32,8 @@
 \addtolength{\MaxSizeOfLineNumbers}{2.5ex}%
 
 \definecolor{lightgreen}{HTML}{CCFF99}
-
 \fancyhead[C]{Optimizacija zaznave trkov v 2D}
+
 \fancyfoot[C]{\thepage}
 \setlength{\textwidth}{16cm}
 \setlength{\oddsidemargin}{0cm}
@@ -78,17 +79,17 @@
 \section*{Povzetek}
 V raziskavi smo implementirali dvodimenzionalen fizikalni simulator. 
 Da bi omogočili gladko delovanje pri velikem številu objektov, smo uporabili podatkovno strukturo
-za optimizacijo zaznave trkov: drevo BSP. Simulator smo napisali v programskem jeziku C, izvaja pa se enonitno.
+za optimizacijo zaznave trkov: k-d drevo. Simulator smo napisali v programskem jeziku C, izvaja pa se enonitno.
 
 V nalogi raziskujemo, kako lahko z različnimi nastavitvami drevesa vplivamo na hitrost simulacije
 in ugotavljamo, kateri deli programa porabijo največ izvajalnega časa. Natančno opišemo tudi podatkovne
 strukture in nekaj zanimivih podrobnosti osnovnih funkcij simulatorja.
 
-Preučimo tudi, kako na hitrost simulacije vpliva velikost sektorjev drevesa BSP, kakšen je vpliv
+Preučimo tudi, kako na hitrost simulacije vpliva velikost sektorjev k-d drevesa, kakšen je vpliv
 reciklaže sektorjev ter kakšen je vpliv značilnosti objektov, ki jih simuliramo. V raziskavi smo
 dobili veliko podatkov, ki jih bomo v prihodnje lahko uporabili za optimiziranje našega simulatorja.
 \section*{Ključne besede}
-simulator, zaznava trkov, drevo BSP, optimizacija, programiranje, programski jezik C, fizikalne simulacije,
+simulator, zaznava trkov, k-d drevo, optimizacija, programiranje, programski jezik C, fizikalne simulacije,
 logična drevesa, računalniške igre
 \newpage
 \section{Uvod}
@@ -133,8 +134,7 @@ iskanja po takih drevesih je ponavadi {\small$\log_{p \cdot r}(n)$}, kjer je $p$
 $r$ število objektov, ki so v vsakem področju shranjeni, $n$ pa število objektov v celotni simulaciji. 
 
 Nekaj popularnih dreves~\cite{weller_brief_2013} so drevesa BVH (\textit{Bounding volume hierarchy -- hierarhija omejujočih volumnov}),
-drevesi \textit{štiriško drevo} in \textit{osmiško drevo}, \textit{k-di\-men\-zi\-o\-nal\-na drevesa} in posebni primer k-di\-men\-zi\-o\-nal\-ni\-h
-dreves, drevo BSP (\textit{Binary space partitioning tree -- dvojiško drevo za razdeljevanje prostora}).
+drevesi \textit{štiriško drevo} in \textit{osmiško drevo}, drevo BSP (\textit{Binary space partitioning tree -- dvojiško drevo za razdeljevanje prostora}) in njegov posebni primer, \textit{k-d ali k-di\-men\-zi\-o\-nal\-no drevo}. 
 
 \begin{itemize}
     \item Hierarhija omejujočih volumnov je drevo, sestavljeno iz omejujočih volumnov, ki vsebujejo
@@ -142,14 +142,18 @@ dreves, drevo BSP (\textit{Binary space partitioning tree -- dvojiško drevo za 
     in različne algoritme za grajenje dreves ter iskanje, vstavljanje in brisanje objektov.
     \item Štiriško drevo je drevo, ki prostor simulacije rekurzivno razdeljuje na štiri enake dele. Uporabno je,
     ker je zelo preprosto in zato časovno učinkovito.~\cite{re_analysis_1985}
-    \item Osmiško drevo je verzija drevesa štiriško drevo, ki razdeljuje 3-D prostor. To počne na zelo podoben način kot štiriško drevo, ampak
+    \item Osmiško drevo je verzija štiriškega drevesa, ki razdeljuje 3-D prostor. To počne na zelo podoben način kot štiriško drevo, ampak
     prostor namesto na 4 razdeli na 8 enakih delov.~\cite{schnabel_octree-based_2006}
+    \item Drevo BSP je iskalno drevo, ki dvodimenzionalen prostor rekurzivno razdeljuje s pomočjo razdelitvenih "hiperravnin",
+    torej prostorov, ki so eno dimenzijo manjši od prostora, ki ga drevo razdeljuje. V 2D prostoru je hiperravnina premica,
+    v 3D prostoru kar navadna ravnina, v 4D prostoru je pa to že 3D prostor. Hiperravnine so lahko orientirane
+    poljubno, kar omogoči, da se oblika vozlišč v drevesu z globino vedno bolje približuje oblikam objektov v drevesu.~\cite{chin_iii5_1995}\cite{mehta_handbook_2018}
+
     \item K-dimenzionalno drevo je drevo, ki prostor razdeljuje s pomočjo ravnin. Objekti na eni strani vsake razdelitvene
     ravnine spadajo v enega neposrednega potomca, ostali pa v drugega. Drevo je narejeno za prostor s poljubnim številom dimenzij,
     zato se orientacija ravnin spreminja, ko potujemo po drevesu. Ravnine so vzporedne koordinatnim osem, torej je v
     $k$-dimenzionalnem drevesu $k$ različnih orientacij razdelitvene ravnine.~\cite{ramasubramanian_generalized_1989}
-    \item Drevo BSP je poseben primer k-dimenzionalnega drevesa, ki obravnava dvodimenzionalen prostor. Razdelitvene
-    ravnine imajo v tem drevesu obliko premic, ki so vzporedne koordinatnima osema.~\cite{chin_iii5_1995}
+    
 \end{itemize}
 
 \begin{figure}
@@ -162,7 +166,7 @@ dreves, drevo BSP (\textit{Binary space partitioning tree -- dvojiško drevo za 
 
 
 
-Odločili smo se, da bomo naše objekte organizirali s pomočjo drevesa BSP.\@ Na osnovi naše implementacije drevesa
+Odločili smo se, da bomo naše objekte organizirali s pomočjo k-dimenzionalnega drevesa.\@ Na osnovi naše implementacije drevesa
 smo zgradili simulator v dveh dimenzijah in ga opremili s kodo, ki meri porabo časa simulatorja in njegovih
 komponent.
 
@@ -174,7 +178,7 @@ Simulator je sestavljen iz štirih zaporedno izvedenih postopkov:
     \item Reciklaža praznih ali skoraj praznih vozlišč
 \end{enumerate}
 
-V nadaljevanju naloge bomo opisali, kako je drevo BSP zapisano v pomnilniku, kako delujejo različni
+V nadaljevanju naloge bomo opisali, kako je k-d drevo zapisano v pomnilniku, kako delujejo različni
 algoritmi v tem drevesu, in kako delujejo pomožne funkcije, ki ne izvajajo zaznave trkov. Po tem opisu
 bomo raziskovali, kako spreminjanje lastnosti drevesa vpliva na hitrost delovanja našega simulatorja,
 ter iz tega izpeljali zaključke, ki bi lahko v prihodnosti privedli do bolje zasnovanega simulatorja.
@@ -191,11 +195,57 @@ je simulator najbolj učinkovit.
 \end{enumerate}
 
 \newpage
+
+
+\section{Fizikalni simulator}
+
+\begin{wrapfigure}{r}{0.4\textwidth}
+    
+    \vspace{0.2cm}
+    \centering
+
+    \tikz[>={Stealth[round,sep]}]
+      \graph[simple necklace layout, necklace routing, grow'=down, node sep=1em,
+              nodes={draw,rounded corners,rectangle,align=flush left,text width=3cm,scale=0.7}]
+      {
+        Zaznava trkov -> Popravki na osnovi zaznanih trkov -> Premikanje objektov -> Optimizacija drevesa -> Zaznava trkov
+      };
+    
+    \vspace{1cm}
+\end{wrapfigure}
+
+Simulator, ki smo ga implementirali, deluje v ciklih. V vsakem ciklu se izvede več korakov: zaznava trkov, upoštevanje
+zaznanih trkov, premikanje objektov v simulaciji in optimizacija k-d drevesa. Funkcije, ki imajo
+povezavo s fizičnim stanjem v simulaciji, morajo biti neodvisne od vrstnega reda izvajanja operacij na objektih.
+Zato, na primer, ne moremo vseh korakov izvajati hkrati. Tako izvajanje bi ustvarilo nepredvidljive rezultate,
+ki so odvisni od vrstnega reda, v katerem procesiramo objekte v simulaciji. Ker moramo zagotoviti koherenco med
+vsemi pristopi k zaznavi trkov in simulaciji, si tega ne moremo privoščiti. Koraki se iz tega razloga izvajajo
+zaporedno, kar nam zagotovi, da se bo simulacija pri enakih začetnih pogojih vedno enako iztekla.
+
+
+\begin{itemize}
+    \item Zaznava trkov je najpomembnejši korak, zaradi katerega sploh potrebujemo k-d drevo. V tem koraku rekurzivno
+    obiščemo vsako vozlišče v drevesu in za vsak objekt zaznamo trke. Zaznane trke zapišemo v objekte.
+    \item V naslednjem koraku prav tako obiščemo vsa vozlišča in upoštevamo zaznane trke. To pomeni, da popravimo vektorje hitrosti
+    vseh objektov, ki so bili vpleteni v trk. Poleg tega opravimo tudi nekaj ostalih nalog kot je zagotavljanje,
+    da so objekti v pravilnih vozliščih, in da objekti ostanejo znotraj meje simulacije. Ena od teh nalog je tudi,
+    da prepoznamo vozlišča, ki so (skoraj) prazna in jih damo v čakalno vrsto za optimizacijo.
+    \item Po popravkih se morajo objekti tudi premakniti. Za to poskrbi tretji korak, kjer ponovno obiščemo vse objekte in
+    jih premaknemo v skladu z njihovimi vektorji hitrosti.
+    \item Zadnji korak je optimizacija drevesa. V tem koraku pregledamo čakalno vrsto za optimizacijo in iz drevesa izločimo
+    prazna ali skoraj prazna vozlišča. Na ta način ohranjamo učinkovitost simulatorja v primeru prostorsko nehomogene
+    simulacije.
+\end{itemize}
+
+Taka ureditev simulatorja omogoči koherenco, a hkrati lahko vidimo tudi, da v vsakem ciklu vsak objekt obiščemo 3-krat.
+Sodobni računalniki so omejeni predvsem s hitrostjo in zamikom branja in pisanja po pomnilniku in predpomnilniku. 
+To pomeni, da je tak način obiskovanja objektov zelo potraten in potreben optimizacije. Na žalost bi bilo zelo zahtevno
+implementirati simulator, ki vse objekte obišče le enkrat na cikel in hkrati ohrani koherenco, a bi verjetno z veliko truda
+in statusnimi zastavicami na objektih to bilo mogoče. Po drugi strani je pa zmanjšati število ogledov vseh objektov iz 3 na 2 veliko
+lažje. V naslednjih poglavjih si bomo ogledali, kako bi se to dalo narediti, ter bolj natančno opisali, kako deluje vsak korak.
+
+\newpage
 \section{Drevo objektov}
-
-
-Naša implementacija fizikalnega simulatorja za pospeševanje zaznave trkov uporablja drevo BSP.
-Drevo se razdeljuje po premicah, ki so vzporedne koordinatnima osema.
 
 \begin{wrapfigure}{r}{0.4\textwidth}
     
@@ -222,7 +272,10 @@ Drevo se razdeljuje po premicah, ki so vzporedne koordinatnima osema.
 
 \end{wrapfigure}
 
-Drevo je sestavljeno iz vozlišč, ki so v jeziku C implementirana kot strukture (gl.\ izpis \ref{node_struct}).
+Naša implementacija fizikalnega simulatorja za pospeševanje zaznave trkov uporablja k-d drevo.
+Drevo se razdeljuje po premicah, ki so vzporedne koordinatnima osema.
+
+Drevo je sestavljeno iz vozlišč, ki so v jeziku C~\cite{gustedt_modern_2024} implementirana kot strukture (gl.\ izpis \ref{node_struct}).
 Za preprostejšo uporabo je drevo povezano navz\-dol in navzgor -- vsako vozlišče ima kazalce na svojega
 neposrednega prednika in oba neposredna potomca.
 Razdeljevanje poteka s pomočjo dveh spremenljivk: smeri razdelitve (po osi $x$ ali osi $y$), ter
@@ -233,21 +286,21 @@ V vsakem vozlišču je tudi \lstinline|buf|, kazalec na del pomnilnika, v katere
 Ena od praktičnih lastnosti kazalca je, da pokaže, ali je vozlišče končno vozlišče.
 
 \begin{lstlisting}[caption={Struktura vozlišča}, label=node_struct, language=C]
-    struct treeNode {
-        struct treeNode* left;
-        struct treeNode* right;
-        struct treeSplit split;
-    //  vsebina strukture treeSplit:
-    //      unsigned isx;
-    //      double value;
-        struct treeNode* up;
-        object* buf; // NULL -> list
-        uint64_t places; //bitmask: prazen = 1, zaseden = 0
-        rect_llhh bindrect; //okvir, ki ga zaseda vozlišče
-        unsigned level; // kako globoko v drevesu je vozlišče
-        uint16_t flags;
-        uint16_t optindex;
-    };
+struct treeNode {
+    struct treeNode* left;
+    struct treeNode* right;
+    struct treeSplit split;
+//  vsebina strukture treeSplit:
+//      unsigned isx;
+//      double value;
+    struct treeNode* up;
+    object* buf; // NULL -> list
+    uint64_t places; //bitmask: prazen = 1, zaseden = 0
+    rect_llhh bindrect; //okvir, ki ga zaseda vozlišče
+    unsigned level; // kako globoko v drevesu je vozlišče
+    uint16_t flags;
+    uint16_t optindex;
+};
 \end{lstlisting}
 
 
@@ -262,7 +315,7 @@ hitro preštejemo. Poleg tega je v strukturi tudi bitna maska \lstinline|flags|,
 \subsection{Iskanje po drevesu}
 
 Hitro iskanje objektov je ključnega pomena za dobro delovanje našega simulatorja.
-To je razlog, da uporabljamo drevo BSP, ki nam omogoča, da objekt hitro najdemo le s
+To je razlog, da uporabljamo k-d drevo, ki nam omogoča, da objekt hitro najdemo le s
 pomočjo njegovih koordinat.
 
 Obstajata dve vrsti iskanja:
@@ -807,7 +860,7 @@ Vidimo lahko, da graf ni linearen. Po okoli 50.000 objektih se vzpenja bolj strm
 postanejo dosti manj predvidljivi. Ugotovili smo, da se to zgodi zaradi velikosti predpomnilnika procesorja, na
 katerem smo testirali program. Ko število objektov doseže določeno vrednost, je predpomnilnik zapolnjen in
 morajo podatki prihajati iz glavnega pomnilnika. Po 80.000 objektih lahko vidimo, da poraba čas narašča skoraj linearno.
-Ker uporabljamo drevo BSP, je teoretična časovna zahtevnost $O(n \log n)$, kjer je $n$ število objektov.
+Ker uporabljamo k-d drevo, je teoretična časovna zahtevnost $O(n \log n)$, kjer je $n$ število objektov.
 Vemo, da sta število objektov v vozlišču in koncentracija objektov konstantni. Iz teh dveh podatkov
 lahko zaključimo, da se povprečen čas, ki ga v vsakem vozlišču simulator porabi znotraj zaznave trkov, ne spreminja,
 torej ima zaznava trkov zahtevnost $O(n)$. Od kod torej pride $\log n$?
@@ -967,7 +1020,7 @@ z manjšo koncentracijo objektov prej ali slej dovolj napolnijo, da se kakšno v
     \adjustbox{max width=0.45\textwidth}{
         \includestandalone{recycling_yes_grav}
     }
-    \caption{Izklopljena reciklaža in vklopljena gravitacija}%
+    \caption{Vklopljena reciklaža in vklopljena gravitacija}%
     \label{fig:recycling_yes_grav}
 \end{wrapfigure}
 
@@ -989,7 +1042,7 @@ objekti pogosteje prehajajo med vozlišči. Poleg tega tudi pogosteje trčijo, z
 Vse to povzroči rahlo rast v porabi čaa, ki jo lahko vidimo na sliki \ref{fig:recycling_yes_grav}.
 \clearpage
 \section{Zaključek}
-V začetnem delu naloge smo opisali reprezentacijo drevesa BSP na primeru dvodimenzionalnega simulatorja.
+V začetnem delu naloge smo opisali reprezentacijo k-d drevesa na primeru dvodimenzionalnega simulatorja.
 Simulator smo opisali in si ogledali, kako je implementiran. Testirali smo ga v različnih situacijah
 ter opazovali, kako spreminjanje lastnosti simuliranega sistema in nastavitev simulatorja vpliva na
 njegovo hitrost. Ugotovili smo, da obstaja določeno optimalno število objektov v vozlišču, ki omogoči
