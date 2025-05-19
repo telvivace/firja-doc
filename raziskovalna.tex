@@ -57,7 +57,7 @@
 \include{slovene-localization.tex} %slovene captions for hyperref and algorithm2e
 % Title Page
 \begin{titlepage}
-    \title{\Huge Optimizacija zaznave trkov v 2D}
+    \title{\Huge Optimizacija zaznave trkov v 2D\\\vspace{0.6cm}\Large{Računalništvo in informatika}}
     \date{}
     \maketitle
     \renewcommand{\headrulewidth}{0cm}
@@ -140,11 +140,14 @@ drevesi \textit{štiriško drevo} in \textit{osmiško drevo}, drevo BSP (\textit
     \item Hierarhija omejujočih volumnov je drevo, sestavljeno iz omejujočih volumnov, ki vsebujejo
     druge omejujoče volumne. Obstaja več variacij tega drevesa, ki uporabljajo različne vrste omejujočih volumnov
     in različne algoritme za grajenje dreves ter iskanje, vstavljanje in brisanje objektov.
+
     \item Štiriško drevo je drevo, ki prostor simulacije rekurzivno razdeljuje na štiri enake dele. Uporabno je,
     ker je zelo preprosto in zato časovno učinkovito.~\cite{re_analysis_1985}
+
     \item Osmiško drevo je verzija štiriškega drevesa, ki razdeljuje 3-D prostor. To počne na zelo podoben način kot štiriško drevo, ampak
     prostor namesto na 4 razdeli na 8 enakih delov.~\cite{schnabel_octree-based_2006}
-    \item Drevo BSP je iskalno drevo, ki dvodimenzionalen prostor rekurzivno razdeljuje s pomočjo razdelitvenih "hiperravnin",
+
+    \item Drevo BSP je iskalno drevo, ki dvodimenzionalen prostor rekurzivno razdeljuje s pomočjo razdelitvenih hiperravnin,
     torej prostorov, ki so eno dimenzijo manjši od prostora, ki ga drevo razdeljuje. V 2D prostoru je hiperravnina premica,
     v 3D prostoru kar navadna ravnina, v 4D prostoru je pa to že 3D prostor. Hiperravnine so lahko orientirane
     poljubno, kar omogoči, da se oblika vozlišč v drevesu z globino vedno bolje približuje oblikam objektov v drevesu.~\cite{chin_iii5_1995}\cite{mehta_handbook_2018}
@@ -166,7 +169,7 @@ drevesi \textit{štiriško drevo} in \textit{osmiško drevo}, drevo BSP (\textit
 
 
 
-Odločili smo se, da bomo naše objekte organizirali s pomočjo k-dimenzionalnega drevesa.\@ Na osnovi naše implementacije drevesa
+Odločili smo se, da bomo objekte organizirali s pomočjo k-dimenzionalnega drevesa.\@ Na osnovi naše implementacije drevesa
 smo zgradili simulator v dveh dimenzijah in ga opremili s kodo, ki meri porabo časa simulatorja in njegovih
 komponent.
 
@@ -179,7 +182,7 @@ Simulator je sestavljen iz štirih zaporedno izvedenih postopkov:
 \end{enumerate}
 
 V nadaljevanju naloge bomo opisali, kako je k-d drevo zapisano v pomnilniku, kako delujejo različni
-algoritmi v tem drevesu, in kako delujejo pomožne funkcije, ki ne izvajajo zaznave trkov. Po tem opisu
+algoritmi v tem drevesu in kako delujejo pomožne funkcije, ki ne izvajajo zaznave trkov. Po tem opisu
 bomo raziskovali, kako spreminjanje lastnosti drevesa vpliva na hitrost delovanja našega simulatorja,
 ter iz tega izpeljali zaključke, ki bi lahko v prihodnosti privedli do bolje zasnovanega simulatorja.
 
@@ -211,15 +214,15 @@ je simulator najbolj učinkovit.
         Zaznava trkov -> Popravki na osnovi zaznanih trkov -> Premikanje objektov -> Optimizacija drevesa -> Zaznava trkov
       };
     
-    \vspace{1cm}
+    \caption{Prikaz sosledja korakov v enem ciklu simulacije}
 \end{wrapfigure}
 
 Simulator, ki smo ga implementirali, deluje v ciklih. V vsakem ciklu se izvede več korakov: zaznava trkov, upoštevanje
 zaznanih trkov, premikanje objektov v simulaciji in optimizacija k-d drevesa. Funkcije, ki imajo
 povezavo s fizičnim stanjem v simulaciji, morajo biti neodvisne od vrstnega reda izvajanja operacij na objektih.
 Zato, na primer, ne moremo vseh korakov izvajati hkrati. Tako izvajanje bi ustvarilo nepredvidljive rezultate,
-ki so odvisni od vrstnega reda, v katerem procesiramo objekte v simulaciji. Ker moramo zagotoviti koherenco med
-vsemi pristopi k zaznavi trkov in simulaciji, si tega ne moremo privoščiti. Koraki se iz tega razloga izvajajo
+ki so odvisni od vrstnega reda, v katerem procesiramo objekte v simulaciji. Ker moramo zagotoviti, da so vsi dostopi
+do objektov pri zaznavi trkov in simulaciji konsistentni, si tega ne moremo privoščiti. Zato se morajo koraki izvajati
 zaporedno, kar nam zagotovi, da se bo simulacija pri enakih začetnih pogojih vedno enako iztekla.
 
 
@@ -227,8 +230,8 @@ zaporedno, kar nam zagotovi, da se bo simulacija pri enakih začetnih pogojih ve
     \item Zaznava trkov je najpomembnejši korak, zaradi katerega sploh potrebujemo k-d drevo. V tem koraku rekurzivno
     obiščemo vsako vozlišče v drevesu in za vsak objekt zaznamo trke. Zaznane trke zapišemo v objekte.
     \item V naslednjem koraku prav tako obiščemo vsa vozlišča in upoštevamo zaznane trke. To pomeni, da popravimo vektorje hitrosti
-    vseh objektov, ki so bili vpleteni v trk. Poleg tega opravimo tudi nekaj ostalih nalog kot je zagotavljanje,
-    da so objekti v pravilnih vozliščih, in da objekti ostanejo znotraj meje simulacije. Ena od teh nalog je tudi,
+    vseh objektov, ki so bili vpleteni v trk. Poleg tega opravimo tudi nekaj drugih nalog, kot je zagotavljanje,
+    da so objekti v pravilnih vozliščih in da objekti ostanejo znotraj meje simulacije. Ena od teh nalog je tudi,
     da prepoznamo vozlišča, ki so (skoraj) prazna in jih damo v čakalno vrsto za optimizacijo.
     \item Po popravkih se morajo objekti tudi premakniti. Za to poskrbi tretji korak, kjer ponovno obiščemo vse objekte in
     jih premaknemo v skladu z njihovimi vektorji hitrosti.
@@ -237,12 +240,10 @@ zaporedno, kar nam zagotovi, da se bo simulacija pri enakih začetnih pogojih ve
     simulacije.
 \end{itemize}
 
-Taka ureditev simulatorja omogoči koherenco, a hkrati lahko vidimo tudi, da v vsakem ciklu vsak objekt obiščemo 3-krat.
+Taka ureditev simulatorja omogoči konsistentnost, vendar v vsakem ciklu vsak objekt obiščemo 3-krat.
 Sodobni računalniki so omejeni predvsem s hitrostjo in zamikom branja in pisanja po pomnilniku in predpomnilniku. 
-To pomeni, da je tak način obiskovanja objektov zelo potraten in potreben optimizacije. Na žalost bi bilo zelo zahtevno
-implementirati simulator, ki vse objekte obišče le enkrat na cikel in hkrati ohrani koherenco, a bi verjetno z veliko truda
-in statusnimi zastavicami na objektih to bilo mogoče. Po drugi strani je pa zmanjšati število ogledov vseh objektov iz 3 na 2 veliko
-lažje. V naslednjih poglavjih si bomo ogledali, kako bi se to dalo narediti, ter bolj natančno opisali, kako deluje vsak korak.
+To pomeni, da je tak način obiskovanja objektov potraten in ponuja priložnost za optimizacijo. V naslednjih poglavjih si bomo ogledali,
+kako bi se to dalo narediti, ter bolj natančno opisali, kako deluje vsak korak.
 
 \newpage
 \section{Drevo objektov}
@@ -323,7 +324,7 @@ iskanje točke (objekta) ter iskanje območja (pravokotnika). Iskanje točke je 
 vstavljanje in ponovno vstavljanje objektov v drevo, iskanje območja pa za zaznavo trkov.
 
 
-Iskanje točke na izpisu \ref{find_parent_node} sicer ni rekurzivno, a smo v rekurzijo primorani
+Iskanje točke na izpisu~\ref{find_parent_node} sicer ni rekurzivno, a smo v rekurzijo primorani
 pri iskanju območja, in sicer zaradi tega, ker se lahko območje, ki ga iščemo, prekriva z več različnimi vozlišči.
 Temu algoritmu ni treba biti rekurziven, saj vedno izbere samo eno pot po drevesu, zato lahko namesto
 rekurzije uporabimo kar zanko \lstinline[language=C]{for}.
